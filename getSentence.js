@@ -1,8 +1,11 @@
 const fs = require('fs')
 const pdf = require('pdf-parse')
-let dataBuffer = fs.readFileSync('./working2050.pdf');
+const shortid = require('shortid');
 
-const getSetence = async () => {
+ 
+const getSetence = async (file) => {
+
+    let dataBuffer = fs.readFileSync(`./${file.filepath}`);
 
     try {
         const {numpages, numrender, info, metadata, version, text} = await pdf(dataBuffer)
@@ -13,20 +16,25 @@ const getSetence = async () => {
         let bulkString = []
     
         paragrafo.forEach( (sentence, indice) => {
-            const doc = {
-                age: 2010,
-                numpages, 
-                numrender, 
-                info, 
-                'creator': metadata._metadata['dc:creator'],
-                'title': metadata._metadata['dc:title'],
-                version,
-                'setence': sentence.trim()
-            }
-            bulkString += 
-`{"index":{"_id":${indice}}}
+            if(sentence.trim() != ""){
+                const doc = {
+                    age: file.relname.split('/')[0], // Pega o ano pela pasta em que o arquivo estava 
+                    numpages, 
+                    numrender, 
+                    info, 
+                    'creator': metadata._metadata['dc:creator'],
+                    'title': metadata._metadata['dc:title'],
+                    version,
+                    'sentence': sentence.trim()
+                }
+
+                // Montando string para subir todos os arquivos de uma vez em uma única consulta
+                bulkString += 
+`{"index":{"_id":"${shortid.generate()}"}}
 ${JSON.stringify(doc)}
-`           
+`    
+            }
+                    
         })
         
         return bulkString
